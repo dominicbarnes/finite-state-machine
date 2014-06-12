@@ -1,6 +1,6 @@
 {
   "name": "finite-state-machine",
-  "version": "0.0.0",
+  "version": "0.0.1",
   "dependencies": {
     "component/emitter": "^1.1.2",
     "visionmedia/debug": "^1.0.2"
