@@ -2,12 +2,12 @@
   "name": "finite-state-machine",
   "version": "0.0.1",
   "dependencies": {
-    "component/emitter": "^1.1.2",
-    "visionmedia/debug": "^1.0.2"
+    "visionmedia/debug": "^1.0.2",
+    "eldargab/hooks-emitter": "~0.0.1"
   },
   "development": {
     "dependencies": {
-        "component/assert": "~0.3.1"
+      "component/assert": "~0.3.1"
     }
   },
   "scripts": [
