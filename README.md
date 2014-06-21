@@ -22,6 +22,7 @@ working with constructor functions and prototypes. (eg: "classes")
 var FSM = require("finite-state-machine");
 
 function MyClass() {
+    FSM.call(this); // required when using as a mixin
     this.start();
 }
 
@@ -56,9 +57,9 @@ them accordingly.
 Creates a new `State` object, associates it with this state machine and returns it. The returned
 value is **not** the original state machine object, so be careful with what you assign to variables.
 
-Each `State` object is an [`Emitter`](https://github.com/component/emitter) instance, so it inherits
-all of it's methods. There is 1 big exception, and that is that `State#on()` has been overloaded just
-for FSM. (see docs for more information)
+Each `State` object is a [`HooksEmitter`](https://github.com/eldargab/hooks-emitter) instance, so it
+inherits all of it's methods. There is 1 big exception, and that is that `State#on()` has been overloaded
+just for FSM. (see docs for more information)
 
 If called multiple times with the same `name`, the preivously-created `State` object will be
 returned. (allowing configuration on the same state object at different times)
