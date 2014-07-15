@@ -26,4 +26,24 @@ describe("FSM(obj)", function () {
         inst.start();
         inst.handle("next");
     });
+
+    it("should not clobber other instances", function () {
+        function F() {
+            FSM.call(this);
+        }
+
+        FSM(F.prototype)
+            .state("a")
+                .on("next", "b")
+            .state("b");
+
+        var inst1 = new F();
+        var inst2 = new F();
+
+        inst1.start();
+        inst2.start();
+
+        inst1.handle("next");
+        assert(inst1.currentState() !== inst2.currentState(), "current states should differ");
+    });
 });
