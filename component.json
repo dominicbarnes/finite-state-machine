@@ -1,6 +1,6 @@
 {
   "name": "finite-state-machine",
-  "version": "0.0.2",
+  "version": "0.0.3",
   "dependencies": {
     "visionmedia/debug": "^1.0.2",
     "eldargab/hooks-emitter": "~0.0.1"
