@@ -81,10 +81,15 @@ if it does not find one. (as opposed to `Machine#state()`, which will create new
 **NOTE** This will likely become a private API in the future.
 
 
+### Machine#currentState(name)
+
+Gets the current state for the machine.
+
+
 ### Machine#initialState(name)
 
-Sets the default/initial state for the machine. (this will be transitioned to when `Machine#start()`
-is called)
+Gets or sets the default/initial state for the machine. (this will be transitioned to when
+`Machine#start()` is called)
 
 If not specified, the first `State` object created via `Machine#state()` is assumed to be the
 initial state.
