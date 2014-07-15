@@ -88,6 +88,12 @@ describe("Machine#initialState(name)", function () {
         var fsm = new Machine();
         assert(fsm.initialState("test") === fsm);
     });
+
+    it("should return the string name for the initial state", function () {
+        var fsm = new Machine();
+        fsm.initialState("test");
+        assert(fsm.initialState() === "test");
+    });
 });
 
 describe("Machine#currentState(name)", function () {
@@ -108,6 +114,12 @@ describe("Machine#currentState(name)", function () {
     it("should return the Machine so it can be chainable", function () {
         var fsm = new Machine();
         assert(fsm.currentState("test") === fsm);
+    });
+
+    it("should return the string name for the current state", function () {
+        var fsm = new Machine();
+        fsm.currentState("test");
+        assert(fsm.currentState() === "test");
     });
 });
 
