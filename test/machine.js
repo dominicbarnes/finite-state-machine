@@ -23,21 +23,90 @@ describe("Machine(obj)", function () {
     });
 });
 
-describe("Machine#getState(name)", function () {
-    it("should return the `State` object matching `name`", function () {
+// configuration methods
+
+describe("Machine#state([name])", function () {
+    it("should create the states hash when it does not exist", function () {
         var fsm = new Machine();
+        assert(!fsm._states);
         fsm.state("test");
-        var state = fsm.getState("test");
-        assert(state instanceof State);
-        assert(state.name === "test");
+        assert(fsm._states);
     });
 
-    it("should throw for a state that does not exist for this machine", function () {
+    it("should create a new `State` object with the name", function () {
         var fsm = new Machine();
         fsm.state("test");
-        assert.throws(function () {
-            fsm.getState("does-not-exist");
-        }, RangeError);
+        assert(fsm._states.test);
+        assert(fsm._states.test instanceof State);
+    });
+
+    it("should set the initial state if not already set", function () {
+        var fsm = new Machine();
+        assert(!fsm._initialState);
+        fsm.state("test");
+        assert.equal(fsm._initialState, "test");
+    });
+
+    it("should update the 'modifying' placeholder", function () {
+        var fsm = new Machine();
+        fsm.state("test");
+        assert.equal(fsm._modifyingState, fsm._getState("test"));
+    });
+
+    it("should return the `Machine` object", function () {
+        var fsm = new Machine();
+        assert(fsm.state("test") === fsm);
+    });
+});
+
+describe("Machine#on(event, fn)", function () {
+    it("should operate on the 'modifying' state", function () {
+        var fsm = new Machine();
+        fsm.state("a").state("b");
+        fsm.on("back", noop);
+
+        assert(!fsm._getState("a")._handlers.back);
+        assert.strictEqual(fsm._getState("b")._handlers.back, noop);
+    });
+
+    it("should return the `Machine` object", function () {
+        var fsm = new Machine();
+        fsm.state("a");
+        assert(fsm.on("next", noop) === fsm);
+    });
+});
+
+describe("Machine#enter(fn)", function () {
+    it("should operate on the 'modifying' state", function () {
+        var fsm = new Machine();
+        fsm.state("a").state("b");
+        fsm.enter(noop);
+
+        assert(!fsm._getState("a")._handlers._enter);
+        assert.strictEqual(fsm._getState("b")._handlers._enter, noop);
+    });
+
+    it("should return the `Machine` object", function () {
+        var fsm = new Machine();
+        fsm.state("a");
+        assert(fsm.enter(noop) === fsm);
+    });
+});
+
+describe("Machine#exit(fn)", function () {
+    it("should operate on the 'modifying' state", function () {
+        var fsm = new Machine();
+        fsm.state("a").state("b");
+        fsm.exit(noop);
+
+        assert(!fsm._getState("a")._handlers._exit);
+        assert.strictEqual(fsm._getState("b")._handlers._exit, noop);
+    });
+
+    it("should return the `Machine` object", function () {
+        var fsm = new Machine();
+        fsm.state("a");
+        assert(fsm.exit(noop) === fsm);
     });
 });
 
@@ -52,7 +121,7 @@ describe("Machine#initialState(name)", function () {
         var fsm = new Machine();
         fsm.initialState("test1");
         fsm.state("test2");
-        var state = fsm.getState("test2");
+        var state = fsm._getState("test2");
         fsm.initialState(state);
         assert(fsm._initialState === "test2");
     });
@@ -69,31 +138,14 @@ describe("Machine#initialState(name)", function () {
     });
 });
 
-describe("Machine#currentState(name)", function () {
-    it("should set the internal property", function () {
-        var fsm = new Machine();
-        fsm.currentState("test");
-        assert(fsm._currentState === "test");
-    });
+// lifecycle methods
 
-    it("should allow a `State` object as well", function () {
+describe("Machine#start()", function () {
+    it("should transition to the initial step", function () {
         var fsm = new Machine();
-        fsm.currentState("test1");
-        fsm.state("test2");
-        var state = fsm.getState("test2");
-        fsm.currentState(state);
-        assert(fsm._currentState === "test2");
-    });
-
-    it("should return the Machine so it can be chainable", function () {
-        var fsm = new Machine();
-        assert(fsm.currentState("test") === fsm);
-    });
-
-    it("should return the string name for the current state", function () {
-        var fsm = new Machine();
-        fsm.currentState("test");
-        assert(fsm.currentState() === "test");
+        fsm.state("a");
+        fsm.start();
+        assert(fsm._currentState === fsm._initialState);
     });
 });
 
@@ -135,97 +187,44 @@ describe("Machine#transition(state)", function () {
     });
 });
 
-describe("Machine#start()", function () {
-    it("should transition to the initial step", function () {
-        var fsm = new Machine();
-        fsm.state("a");
-        fsm.start();
-        assert(fsm._currentState === fsm._initialState);
+describe("Machine#currentState(name)", function () {
+    it("should return the string name for the current state", function () {
+        var fsm = FSM({})
+          .state("a").on("next", "b")
+          .state("b")
+          .start();
+
+        assert.equal(fsm.currentState(), "a");
     });
 });
 
-describe("Machine#state([name])", function () {
-    it("should create the states hash when it does not exist", function () {
-        var fsm = new Machine();
-        assert(!fsm._states);
-        fsm.state("test");
-        assert(fsm._states);
-    });
+describe("Machine#previousState(name)", function () {
+    it("should return the string name for the previous state", function () {
+        var fsm = FSM({})
+          .state("a").on("next", "b")
+          .state("b")
+          .start();
 
-    it("should create a new `State` object with the name", function () {
-        var fsm = new Machine();
-        fsm.state("test");
-        assert(fsm._states.test);
-        assert(fsm._states.test instanceof State);
-    });
-
-    it("should set the initial state if not already set", function () {
-        var fsm = new Machine();
-        assert(!fsm._initialState);
-        fsm.state("test");
-        assert.equal(fsm._initialState, "test");
-    });
-
-    it("should update the 'modifying' placeholder", function () {
-        var fsm = new Machine();
-        fsm.state("test");
-        assert.equal(fsm._modifyingState, fsm.getState("test"));
-    });
-
-    it("should return the `Machine` object", function () {
-        var fsm = new Machine();
-        assert(fsm.state("test") === fsm);
+        fsm.handle("next");
+        assert.equal(fsm.previousState(), "a");
     });
 });
 
-describe("Machine#enter(fn)", function () {
-    it("should operate on the 'modifying' state", function () {
+describe("Machine#_getState(name)", function () {
+    it("should return the `State` object matching `name`", function () {
         var fsm = new Machine();
-        fsm.state("a").state("b");
-        fsm.enter(noop);
-
-        assert(!fsm.getState("a")._handlers._enter);
-        assert.strictEqual(fsm.getState("b")._handlers._enter, noop);
+        fsm.state("test");
+        var state = fsm._getState("test");
+        assert(state instanceof State);
+        assert(state.name === "test");
     });
 
-    it("should return the `Machine` object", function () {
+    it("should throw for a state that does not exist for this machine", function () {
         var fsm = new Machine();
-        fsm.state("a");
-        assert(fsm.enter(noop) === fsm);
-    });
-});
-
-describe("Machine#on(event, fn)", function () {
-    it("should operate on the 'modifying' state", function () {
-        var fsm = new Machine();
-        fsm.state("a").state("b");
-        fsm.on("back", noop);
-
-        assert(!fsm.getState("a")._handlers.back);
-        assert.strictEqual(fsm.getState("b")._handlers.back, noop);
-    });
-
-    it("should return the `Machine` object", function () {
-        var fsm = new Machine();
-        fsm.state("a");
-        assert(fsm.on("next", noop) === fsm);
-    });
-});
-
-describe("Machine#exit(fn)", function () {
-    it("should operate on the 'modifying' state", function () {
-        var fsm = new Machine();
-        fsm.state("a").state("b");
-        fsm.exit(noop);
-
-        assert(!fsm.getState("a")._handlers._exit);
-        assert.strictEqual(fsm.getState("b")._handlers._exit, noop);
-    });
-
-    it("should return the `Machine` object", function () {
-        var fsm = new Machine();
-        fsm.state("a");
-        assert(fsm.exit(noop) === fsm);
+        fsm.state("test");
+        assert.throws(function () {
+            fsm._getState("does-not-exist");
+        }, RangeError);
     });
 });
 

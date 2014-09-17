@@ -1,5 +1,5 @@
 {
-  "name": "dominicbarnes-finite-state-machine",
+  "name": "finite-state-machine",
   "version": "0.0.3",
   "devDependencies": {
     "component": "~1.0.0-rc5",
@@ -11,5 +11,8 @@
     "pretest": "npm run build",
     "test": "component test phantom",
     "start": "component test browser"
+  },
+  "dependencies": {
+    "debug": "^2.0.0"
   }
 }
