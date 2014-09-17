@@ -1,4 +1,7 @@
 
+# 0.1.0 (9/16/2014)
+ * large refactor, refer to docs for current usage patterns
+
 # 0.0.3 (7/15/2014)
  * allowed `Machine#currentState()` and `Machine#initialState()` to act as getters
 
