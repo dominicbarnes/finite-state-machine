@@ -1,5 +1,6 @@
 var assert = require("assert");
 var Machine = require("finite-state-machine/lib/machine.js");
+var noop = require("noop");
 var State = require("finite-state-machine/lib/state.js");
 
 describe("State(machine, name)", function () {
@@ -82,5 +83,3 @@ describe("State#runHandler(ctx, event, ...args)", function () {
         state.runHandler(machine, "next", [ 1, 2, 3 ]);
     });
 });
-
-function noop() {}

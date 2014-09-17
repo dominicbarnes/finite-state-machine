@@ -1,5 +1,6 @@
 var assert = require("assert");
 var Machine = require("finite-state-machine/lib/machine.js");
+var noop = require("noop");
 var State = require("finite-state-machine/lib/state.js");
 
 describe("Machine(obj)", function () {
@@ -210,6 +211,8 @@ describe("Machine#previousState(name)", function () {
     });
 });
 
+// private methods
+
 describe("Machine#_getState(name)", function () {
     it("should return the `State` object matching `name`", function () {
         var fsm = new Machine();
@@ -227,5 +230,3 @@ describe("Machine#_getState(name)", function () {
         }, RangeError);
     });
 });
-
-function noop() {}

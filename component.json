@@ -2,11 +2,12 @@
   "name": "finite-state-machine",
   "version": "0.0.3",
   "dependencies": {
-    "visionmedia/debug": "^1.0.2"
+    "visionmedia/debug": "^2.0.0"
   },
   "development": {
     "dependencies": {
-      "component/assert": "~0.3.1"
+      "chrissrogers/noop": "*",
+      "component/assert": "~0.4.0"
     }
   },
   "scripts": [
