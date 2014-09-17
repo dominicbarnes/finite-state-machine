@@ -1,9 +1,11 @@
 finite-state-machine
 ====================
 
-Turns your object/class into a [Finite State Machine](http://en.wikipedia.org/wiki/Finite-state_machine).
-A lot of inspiration was taken from [machina.js](https://github.com/ifandelse/machina.js) when designing
-the API.
+Turns your object/class into a
+[Finite State Machine](http://en.wikipedia.org/wiki/Finite-state_machine).
+A lot of inspiration was taken from
+[machina.js](https://github.com/ifandelse/machina.js)
+when designing the API.
 
 
 ## Installation
@@ -15,169 +17,141 @@ component install dominicbarnes/finite-state-machine
 
 ## Usage
 
-There are many ways to initialize, but the examples here will only cover the most common use-case,
-working with constructor functions and prototypes. (eg: "classes")
+This is a mixin, and is used similarly to
+[component/emitter](https://github.com/component/emitter)
+but it additionally exposes a fluent (chainable) API for adding states
+and handlers to your state machine.
+
+We will build a state machine reflecting this great example from
+[wikipedia](http://en.wikipedia.org/wiki/Finite-state_machine#Example:_a_turnstile)
+
+![example state machine](http://upload.wikimedia.org/wikipedia/commons/9/9e/Turnstile_state_machine_colored.svg)
+
 
 ```js
 var FSM = require("finite-state-machine");
 
-function MyClass() {
-    FSM.call(this); // required when using as a mixin
+function Turnstyle() {
     this.start();
 }
 
-FSM(MyClass.prototype)
-    .state("A")
-        .on("enter", function () {
-            console.log("Entering A");
-        })
-        .on("next", "B")
-    .state("B")
-        .on("exit", function () {
-            console.log("Exiting B");
-        })
-        .on("previous", "A");
+FSM(Turnstyle.prototype)
+    .state("locked")
+        .on("push", "locked")
+        .on("coin", "unlocked")
+    .state("unlocked")
+        .on("push", "locked")
+        .on("coin", "unlocked");
 
-
-var instance = new MyClass();
-instance.handle("next");     // transitions to state "B"
-instance.handle("next");     // does nothing, state "B" has no "next" event handler
-instance.handle("previous"); // transitions to state "A"
+var ts = new Turnstyle();
+ts.currentState(); // "locked"
+ts.handle("push");
+ts.currentState(); // "locked"
+ts.handle("coin");
+ts.currentState(); // "unlocked"
+ts.handle("push");
+ts.currentState(); // "locked"
 ```
+
+If a function is used, you can perform more complex branching. You must remember
+to call `transition` yourself however. In handlers, `this` is the root machine
+object.
+
+```js
+FSM(Turnstyle.prototype)
+    .state("locked")
+        .on("coin", function () {
+            console.log("thank you, you may now pass!");
+            this.transition("unlocked");
+        })
+        .on("push", function () {
+            console.log("locked, please enter a coin to proceed");
+        });
+```
+
+
+This means you can create classes that are state machines, and all instances
+you create are **different** state machines, each with their own state.
+
+Each state can also be given special handlers for entry/exit. These will be
+called upon automatically during a state transition.
+
+```js
+FSM(Turnstyle.prototype)
+    .state("unlocked")
+        .enter(function () {
+            console.log("unlocked!");
+        })
+        .exit(function () {
+            console.log("locked!");
+        });
+
+var ts = new Turnstyle();
+ts.currentState(); // "locked"
+ts.handle("coin"); // $ "unlocked!"
+ts.handle("push"); // $ "locked!"
+```
+
+When `handle` is called with an unknown event, it simply does nothing.
+
 
 ## API
 
-The object returned by `FSM(MyClass.prototype)` is a fluent/chainable API for configuring the
-states and transitions. I've separated the `Machine` and `State` methods below and have labeled
-them accordingly.
+### Configuration
+
+This is the fluent API you use to configure your state machines.
+
+#### Machine#state(name)
+
+Adds a new state to the state machine. Until the next call to `state`, this is
+assumed to be the target of methods like `on`, `enter` and `exit`.
+
+#### Machine#on(event, fn)
+
+Adds a new event handler for active state. `event` must be a `String`. If `fn`
+is a `String`, it will transition to the state with that same name when called
+upon.
+
+#### Machine#enter(fn)
+
+Adds a entry handler for active state. `fn` must be a function.
+
+#### Machine#exit(fn)
+
+Adds a entry handler for active state. `fn` must be a function.
+
+#### Machine#initialState()
+
+Sets the starting state for your machine. The first state created via
+`Machine#state(name)` is assumed to be the initial state. (so this is likely
+unnecessary most of the time)
 
 
-### Machine#state(name)
+### Lifecycle
 
-Creates a new `State` object, associates it with this state machine and returns it. The returned
-value is **not** the original state machine object, so be careful with what you assign to variables.
+These methods are meant to be used throughout the life of your state machine.
 
-Each `State` object is a [`HooksEmitter`](https://github.com/eldargab/hooks-emitter) instance, so it
-inherits all of it's methods. There is 1 big exception, and that is that `State#on()` has been overloaded
-just for FSM. (see docs for more information)
+#### Machine#start()
 
-If called multiple times with the same `name`, the preivously-created `State` object will be
-returned. (allowing configuration on the same state object at different times)
+This transitions the state machine into the "initial state", usually this goes
+in your constructor directly. But you can call it at other times depending on
+your use-case.
 
-```js
-FSM(MyClass.prototype)
-    .state("A")
-    .state("B")
-    .state("C")
-    .state("A") // this will be the same State object created above
-```
+#### Machine#handle(event, ...args)
 
+Triggers the given `event` using the current state to determine what actions
+to take. All the additional arguments are forwarded to the handler functions.
 
-### Machine#getState(name)
+#### Machine#transition(state)
 
-Returns the `State` object with the corresponding `name`. It will throw a `RangeError`
-if it does not find one. (as opposed to `Machine#state()`, which will create new `State` objects)
+Causes the machine to transition to the given `state`. The current state's exit
+handler will be called. (now it becomes the previous state) Afterwards, the
+new current state's entry handler will be called.
 
-**NOTE** This will likely become a private API in the future.
+#### Machine#currentState()
 
+Retrieves the name of the current state this machine is in.
 
-### Machine#currentState(name)
+#### Machine#previousState()
 
-Gets the current state for the machine.
-
-
-### Machine#initialState(name)
-
-Gets or sets the default/initial state for the machine. (this will be transitioned to when
-`Machine#start()` is called)
-
-If not specified, the first `State` object created via `Machine#state()` is assumed to be the
-initial state.
-
-When using this particular API in the midst of the fluent/chainable API, it must come **before**
-the calls to `Machine#state()`. For example:
-
-```js
-FSM(MyClass.prototype)
-    .initialState("B")
-    .state("A") // without the initialState call, this is assumed to be the initial state
-    .state("B")
-    .state("C");
-```
-
-
-### Machine#handle(event, ...args)
-
-Transitions between states are accomplished via event handlers. Usually, this will be called by
-your application in response to user interaction, like `click`.
-
-The handlers will have the source machine object as `this`, giving you the scope you are likely
-expecting. If the handler specified via `State#on()` is a `String`, it will simply transition to
-that state. If a `Function` is supplied, it will be responsible for calling `Machine#transition()`
-itself.
-
-```js
-function MyClass(el) {
-    this.element = el;
-}
-
-FSM(MyClass.prototype)
-    .state("A")
-        .on("click", "B")
-    .state("B")
-        .on("click", function (e) {
-            this.transition("A");
-        });
-
-
-var fsm = new MyClass(document.getElementById("#my-button"));
-
-fsm.element.onclick = function (e) {
-    fsm.handle("click", e)
-};
-```
-
-
-### Machine#transition(name)
-
-Transitions from the current state to the state specified by `name`. In most cases, this should
-only be called internally, such as via event handlers.
-
-
-### Machine#start()
-
-Starts the state machine and transitions to the initial state.
-
-This was made a separate method in order to make lifecycle management a little easier.
-
-
-### Machine#stop()
-
-Stops the machine regandless of the state it is currently in.
-
-This was made a separate method in order to make lifecycle management a little easier.
-
-
-### State(machine, name)
-
-Requires a reference to the parent `machine` and needs an identifier. (ie: `name`) This is
-a **private** API, it's only documented here for completeness.
-
-
-### State#on(event, fn)
-
-Overloads the behavior of `Emitter#on()`.
-
-If `fn` is a `String`, it will tranition to the state with a matching name.
-
-If `fn` is a `Function`, it will be invoked when that event is emitted, and will be responsible for
-updating the state machine. (ie: calling `Machine#transition()`) The context (ie: `this`) will be set
-as the parent `Machine` object, not the `State` object. (because that wouldn't be useful or expected)
-
-
-### State#state(name)
-
-This method is **only** to support proper chaining, it is documented here in order to make that clear.
-
-It will call `Machine#state()` on the parent machine object and return the result, allowing the chain
-to continue despite being a `State` object rather than the `Machine` itself.
+Retrieves the name of the last state this machine is in.

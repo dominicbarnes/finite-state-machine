@@ -9,27 +9,25 @@ describe("FSM(obj)", function () {
 
     it("should work properly on constructors", function (done) {
         function F() {
-            FSM.call(this);
+            this.start();
         }
 
         FSM(F.prototype)
             .state("a")
                 .on("next", "b")
             .state("b")
-                .on("enter", function () {
+                .enter(function () {
                     assert(this === inst);
                     done();
                 });
 
         var inst = new F();
-
-        inst.start();
         inst.handle("next");
     });
 
     it("should not clobber other instances", function () {
         function F() {
-            FSM.call(this);
+            this.start();
         }
 
         FSM(F.prototype)
@@ -40,10 +38,35 @@ describe("FSM(obj)", function () {
         var inst1 = new F();
         var inst2 = new F();
 
-        inst1.start();
-        inst2.start();
-
         inst1.handle("next");
         assert(inst1.currentState() !== inst2.currentState(), "current states should differ");
+    });
+
+    it("should preserve context properly", function () {
+        function F() {
+            this.start();
+        }
+
+        FSM(F.prototype)
+            .state("a")
+                .on("next", function () {
+                    assert(this === expected);
+                    this.transition("b");
+                })
+            .state("b")
+                .on("next", function () {
+                    assert(this === expected);
+                });
+
+        var inst1 = new F();
+        var inst2 = new F();
+
+        var expected = inst1;
+        inst1.handle("next");
+        inst1.handle("next");
+
+        expected = inst2;
+        inst2.handle("next");
+        inst2.handle("next");
     });
 });

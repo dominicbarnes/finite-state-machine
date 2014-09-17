@@ -1,5 +1,6 @@
 var assert = require("assert");
 var Machine = require("finite-state-machine/lib/machine.js");
+var noop = require("noop");
 var State = require("finite-state-machine/lib/state.js");
 
 describe("State(machine, name)", function () {
@@ -7,63 +8,78 @@ describe("State(machine, name)", function () {
         assert(typeof State === "function");
     });
 
-    it("should set the machine and name properties", function () {
-        var machine = {};
-        var state = new State(machine, "test");
-        assert(state.machine === machine);
-        assert(state.name === "test");
+    it("should set the name and handler properties", function () {
+        var state = new State("test");
+        assert.equal(state.name, "test");
+        assert.deepEqual(state._handlers, {});
     });
 });
 
 describe("State#on(event, fn)", function () {
-    it("should interpret a string to mean it should transition to that step", function () {
+    it("should augment the _handlers index", function () {
+        var state = new State("a");
+        state.on("next", noop);
+        assert.deepEqual(state._handlers, { next: noop });
+    });
+
+    it("should create a function from a string", function () {
+        var state = new State("a");
+        state.on("next", "b");
+
         var machine = {
-            transition: function (state) {
-                assert(state === "bar");
+            transition: function (name) {
+                assert.equal(name, "b");
             }
         };
 
-        var state = new State(machine, "test");
-        state.on("foo", "bar");
-        state.emit("foo");
-    });
-
-    it("should still allow functions as handlers", function (done) {
-        var state = new State({}, "test");
-        state.on("foo", done);
-        state.emit("foo");
-    });
-
-    it("should allow wrapped functions (ex: Emitter#once)", function (done) {
-        var state = new State({}, "test");
-        done.fn = done;
-        state.on("foo", done);
-        state.emit("foo");
-    });
-
-    it("should still work with Emitter#once()", function (done) {
-        var state = new State({}, "test");
-        var counter = 0;
-
-        state.once("foo", function () {
-            if (++counter > 1) throw new Error("called too many times");
-        });
-        state.emit("foo");
-
-        state.once("foo", done);
-        state.emit("foo");
+        state.runHandler(machine, "next");
     });
 });
 
-describe("State#state(name)", function () {
-    it("should return a call to this.machine.state(name)", function () {
-        var machine = {
-            state: function (name) {
-                assert(name === "b");
-            }
-        };
+describe("State#enter(fn)", function () {
+    it("should be treated as a _enter handler", function () {
+        var state = new State("a");
+        state.enter(noop);
+        assert.deepEqual(state._handlers, { _enter: noop });
+    });
 
-        var state = new State(machine, "a");
-        state.state("b");
+    it("should return itself", function () {
+        var state = new State("a");
+        assert.strictEqual(state.enter(noop), state);
+    });
+});
+
+describe("State#exit(fn)", function () {
+    it("should be treated as a _exit handler", function () {
+        var state = new State("a");
+        state.exit(noop);
+        assert.deepEqual(state._handlers, { _exit: noop });
+    });
+
+    it("should return itself", function () {
+        var state = new State("a");
+        assert.strictEqual(state.exit(noop), state);
+    });
+});
+
+describe("State#runHandler(ctx, event, ...args)", function () {
+    it("should call the fn with the specified context", function () {
+        var machine = {};
+        var state = new State("a");
+        state.on("next", function () {
+            assert(this === machine);
+        });
+        state.runHandler(machine, "next");
+    });
+
+    it("should call the fn with arguments", function () {
+        var machine = {};
+        var state = new State("a");
+        state.on("next", function (a, b, c) {
+            assert.equal(a, 1);
+            assert.equal(b, 2);
+            assert.equal(c, 3);
+        });
+        state.runHandler(machine, "next", [ 1, 2, 3 ]);
     });
 });
